@@ -365,6 +365,17 @@ jobs:
         fetch-depth: 0
         path: ${{ env.GOPATH }}\src\github.com\${{ github.repository }}
 
+    - name: Debug
+      shell: msys2 {0}
+      run: |
+        ls -l /d/
+        ls -l /d/a/
+        ls -l /d/a/goneovim/
+        ls -l /d/a/goneovim/goneovim/
+        ls -l /d/a/goneovim/goneovim/src/
+        ls -l /d/a/goneovim/goneovim/src/github.com/
+        ls -l /d/a/goneovim/goneovim/src/github.com/${{ github.repository }}
+
     - name: Get Qt binding for Go
       shell: msys2 {0}
       run: |
