@@ -353,6 +353,7 @@ jobs:
     - shell: msys2 {0}
       run: |
         pacman --noconfirm -S sed git make tree mingw-w64-x86_64-toolchain mingw-w64-x86_64-qt5 
+        pacman -Ql mingw-w64-x86_64-qt5 
 
     - name: Install Go
       uses: actions/setup-go@v4
@@ -375,7 +376,7 @@ jobs:
       shell: msys2 {0}
       run: |
         export PATH=/c/hostedtoolcache/windows/go/${{ matrix.go-version }}/x64/bin/:$PATH
-        cd ${{ github.workspace }}/src/github.com/${{ github.repository }}
+        cd /c/a/goneovim/goneovim//src/github.com/${{ github.repository }}
         go get -v github.com/akiyosi/qt 
         go get github.com/akiyosi/qt/internal/cmd@v0.0.0-20230718095223-7e4e923f23fa
         go get github.com/akiyosi/qt/internal/binding/files/docs/5.12.0
@@ -398,21 +399,21 @@ jobs:
       shell: msys2 {0}
       run: |
         export PATH=/c/hostedtoolcache/windows/go/${{ matrix.go-version }}/x64/bin/:$PATH
-        cd ${{ github.workspace }}/src/github.com/${{ github.repository }}
+        cd /c/a/goneovim/goneovim/src/github.com/${{ github.repository }}
         $(go env GOPATH)/bin/qtsetup -test=false
 
     - name: Get dependencies
       shell: msys2 {0}
       run: |
         export PATH=/c/hostedtoolcache/windows/go/${{ matrix.go-version }}/x64/bin/:$PATH
-        cd ${{ github.workspace }}/src/github.com/${{ github.repository }}
+        cd /c/a/goneovim/goneovim/src/github.com/${{ github.repository }}
         make deps
 
     - name: Test
       shell: msys2 {0}
       run: |
         export PATH=/c/hostedtoolcache/windows/go/${{ matrix.go-version }}/x64/bin/:$PATH
-        cd ${{ github.workspace }}/src/github.com/${{ github.repository }}
+        cd /c/a/goneovim/goneovim/src/github.com/${{ github.repository }}
         make test
 
 
