@@ -580,10 +580,13 @@ func (c *Cursor) updateCursorPos(row, col int, win *Window) {
 	if c.font.fixedPitch {
 		x += float64(col)*font.cellwidth
 	} else {
+		// For proportional fonts, compute the length of each char
 		fm := c.font.fontMetrics
 		for i := 0; i < c.col; i++ {
 			char := win.content[c.row][i].char
-			// TODO: bold (and italic?) width, using `c.highlight.bold`
+			// TODO: Bold (and italic?) width, using `c.highlight.bold`
+			// TODO: Use cache to avoid calling HorizontalAdvance?
+			// (Window.allLinesPixels may not be initialized.)
 			x += fm.HorizontalAdvance(char, -1)
 		}
 	}
