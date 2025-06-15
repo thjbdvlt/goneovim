@@ -2301,6 +2301,23 @@ func resolveFontFallback(font *Font, fallbackfonts []*Font, char string) *Font {
 	return font
 }
 
+// Compute the pixel index of each character in a row.
+// This function is only usefull for proportional fonts,
+// where we can't do `col * font.cellwidth`.
+// TODO: x could be something else than 0, if any margin?
+func (w *Window) linePixelProportional(font *Font, row int, col int, cols int) []int {
+	fm := font.fontMetrics
+	rowContent := w.content[row]
+	arr := make([]int, cols)
+	x := 0
+	for i := col; i < cols; i++ {
+		char := rowContent[i].char
+		arr[i] = x
+		x += int(fm.HorizontalAdvance(char, -1))
+	}
+	return append(arr, x)
+}
+
 func (w *Window) drawText(p *gui.QPainter, y int, col int, cols int) {
 	if y >= len(w.content) {
 		return
@@ -2330,6 +2347,9 @@ func (w *Window) drawText(p *gui.QPainter, y int, col int, cols int) {
 		if line[x].char == "" {
 			continue
 		}
+		// TODO: Avoid very large spaces for proportional fonts
+		// TODO: fix rendering after double space
+		// if line[x].char == " " && wsfont.fixedPitch {
 		if line[x].char == " " {
 			continue
 		}
@@ -2402,6 +2422,10 @@ func (w *Window) drawText(p *gui.QPainter, y int, col int, cols int) {
 	// This is the normal rendering process for goneovim,
 	// we draw a word snippet of the same highlight on the screen for each of the highlights.
 	if !cellBasedDrawing {
+
+		// TODO: use the same lineIdx for the cursor?
+		lineIdx := w.linePixelProportional(wsfont, y, col, cols)
+
 		for highlight, colorSlice := range chars {
 			var buffer bytes.Buffer
 			slice := colorSlice
@@ -2487,9 +2511,17 @@ func (w *Window) drawText(p *gui.QPainter, y int, col int, cols int) {
 
 					if buffer.Len() != 0 {
 
+						// Compute the pixel start of the string
+						var xPos int
+						if wsfont.fixedPitch {
+							xPos = int(float64(x-pos) * wsfont.cellwidth)
+						} else {
+							xPos = lineIdx[x-pos]
+						}
+
 						w.drawTextInPos(
 							p,
-							int(float64(x-pos)*wsfont.cellwidth)+horScrollPixels,
+							xPos+horScrollPixels,
 							wsfontLineHeight+verScrollPixels,
 							buffer.String(),
 							highlight,
@@ -2507,7 +2539,6 @@ func (w *Window) drawText(p *gui.QPainter, y int, col int, cols int) {
 					}
 				}
 			}
-
 		}
 	}
 
