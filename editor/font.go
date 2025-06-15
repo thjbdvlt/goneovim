@@ -26,6 +26,7 @@ type Font struct {
 	lineSpace   int
 	letterSpace int
 	shift       int
+	fixedPitch  bool
 }
 
 func fontSizeNew(font *gui.QFont) (float64, int, float64, float64) {
@@ -60,7 +61,8 @@ func initFontNew(family string, size float64, weight gui.QFont__Weight, stretch,
 	font.SetWeight(int(weight))
 	font.SetStretch(stretch)
 
-	font.SetFixedPitch(true)
+	fixedPitch := gui.NewQFontInfo(font).FixedPitch()
+	font.SetFixedPitch(fixedPitch)
 	font.SetKerning(false)
 
 	width, height, ascent, italicWidth := fontSizeNew(font)
@@ -81,6 +83,7 @@ func initFontNew(family string, size float64, weight gui.QFont__Weight, stretch,
 		shift:       int(float64(lineSpace)/2 + ascent),
 		ascent:      ascent,
 		italicWidth: italicWidth,
+		fixedPitch:  fixedPitch,
 	}
 }
 
@@ -101,7 +104,8 @@ func (f *Font) change(family string, size float64, weight gui.QFont__Weight, str
 	f.qfont.SetWeight(int(weight))
 	f.qfont.SetStretch(stretch)
 
-	f.qfont.SetFixedPitch(true)
+	f.fixedPitch = gui.NewQFontInfo(f.qfont).FixedPitch()
+	f.qfont.SetFixedPitch(f.fixedPitch)
 	f.qfont.SetKerning(false)
 
 	width, height, ascent, italicWidth := fontSizeNew(f.qfont)
@@ -165,6 +169,7 @@ func (f *Font) putDebugLog() {
 		fi.PointSizeF(),
 		fi.StyleName(),
 		fmt.Sprintf("%v", fi.PointSizeF()),
+		fmt.Sprintf("(fixed pitch: %v) ", fi.FixedPitch()),
 	)
 }
 
