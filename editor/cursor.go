@@ -463,11 +463,14 @@ func (c *Cursor) updateCursorShape(win *Window) {
 
 
 	if c.font != nil {
-		// Cursor width depends on char under cursor
 		// TODO: fix Cursor text when width is small: t, i, !, f, ...
-		fm := c.font.fontMetrics
-		char := win.content[c.row][c.col].char
-		cellwidth = fm.HorizontalAdvance(char, -1)
+		if c.font.fixedPitch {
+			cellwidth = c.font.cellwidth
+		} else {
+			fm := c.font.fontMetrics
+			char := win.content[c.row][c.col].char
+			cellwidth = fm.HorizontalAdvance(char, -1)
+		}
 
 		height = c.font.height
 		lineSpace = c.font.lineSpace
@@ -573,17 +576,18 @@ func (c *Cursor) updateCursorPos(row, col int, win *Window) {
 		horScrollPixels += win.scrollPixels[0]
 	}
 
-	// Correct `x` for proportional fonts
-	x := float64(winx * horScrollPixels)
-	fm := c.font.fontMetrics
-	for i := 0; i < c.col; i++ {
-		char := win.content[c.row][i].char
-		// TODO: SignColumn, Numbers, Gutter, etc.
-		// TODO: bold (and italic?) width, using `c.highlight.bold`
-		x += fm.HorizontalAdvance(char, -1)
+	var x float64 = float64(winx + horScrollPixels)
+	if c.font.fixedPitch {
+		x += float64(col)*font.cellwidth
+	} else {
+		fm := c.font.fontMetrics
+		for i := 0; i < c.col; i++ {
+			char := win.content[c.row][i].char
+			// TODO: bold (and italic?) width, using `c.highlight.bold`
+			x += fm.HorizontalAdvance(char, -1)
+		}
 	}
 
-	// x := float64(winx + int(float64(col)*font.cellwidth) + horScrollPixels)
 	y := float64(winy + int(float64(row*font.lineHeight)+float64(verScrollPixels)))
 	if font.lineSpace > 0 {
 		y += float64(font.lineSpace) / 2.0

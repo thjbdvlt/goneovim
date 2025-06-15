@@ -1762,6 +1762,7 @@ func (w *Window) update() {
 		var rects [][4]int
 		isCreateRect := false
 
+		// TODO: cellwidth cannot be used for proportional font.
 		if drawWithSingleRect {
 			rect := [4]int{
 				0,
