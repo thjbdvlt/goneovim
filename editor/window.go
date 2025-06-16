@@ -2062,6 +2062,20 @@ func (w *Window) fillCellRect(p *gui.QPainter, lastHighlight *Highlight, lastBg 
 
 	font := w.getFont()
 
+	// Get the position and width of the Rect in pixels.
+	var pixelStart, pixelWidth float64
+	if font.fixedPitch {
+		pixelStart = float64(start) * font.cellwidth
+		pixelWidth = float64(width) * font.cellwidth
+	} else {
+		pixelStart = float64(w.allLinesPixels[y][start])
+		x2 := start + width
+		if x2 >= w.cols {
+			x2 = w.cols
+		}
+		pixelWidth = w.getPixelX(font, y, x2) - pixelStart
+	}
+
 	if verScrollPixels == 0 ||
 		verScrollPixels > 0 && (y < w.rows-w.viewportMargins[1]-1) ||
 		verScrollPixels < 0 && (y > w.viewportMargins[0]) {
@@ -2073,18 +2087,17 @@ func (w *Window) fillCellRect(p *gui.QPainter, lastHighlight *Highlight, lastBg 
 			var image *gui.QImage
 			imagev, err := cache.get(HlBgKey{
 				bg:     lastHighlight.bg(),
-				length: width,
+				length: int(pixelWidth),
 			})
 
 			if err != nil {
-				image = w.newBgCache(lastHighlight, width)
-				w.setBgCache(lastHighlight, width, image)
+				image = w.newBgCache(lastHighlight, pixelWidth)
+				w.setBgCache(lastHighlight, int(pixelWidth), image)
 			} else {
 				image = imagev.(*gui.QImage)
 			}
-
 			p.DrawImage9(
-				int(w.getPixelX(font, y, start)+float64(horScrollPixels)),
+				int(pixelStart+float64(horScrollPixels)),
 				int(float64((y)*font.lineHeight+verScrollPixels)),
 				image,
 				0, 0,
@@ -2095,18 +2108,6 @@ func (w *Window) fillCellRect(p *gui.QPainter, lastHighlight *Highlight, lastBg 
 		} else {
 			// Set diff pattern
 			pattern, color, transparent := w.getFillpatternAndTransparent(lastHighlight)
-
-			// Get pixel start index and width
-			pixelStart := w.getPixelX(font, y, start)
-			var pixelWidth float64
-			if font.fixedPitch {
-				pixelWidth = float64(width) * font.cellwidth
-			} else {
-				if end > w.cols-1 {
-					end = w.cols-1
-				}
-				pixelWidth = w.getPixelX(font, y, end+1) - pixelStart
-			}
 
 			// Fill background with pattern
 			rectF := core.NewQRectF4(
@@ -2241,13 +2242,14 @@ func (w *Window) fillCellRect(p *gui.QPainter, lastHighlight *Highlight, lastBg 
 
 }
 
-func (w *Window) newBgCache(lastHighlight *Highlight, length int) *gui.QImage {
+func (w *Window) newBgCache(lastHighlight *Highlight, width float64) *gui.QImage {
 	font := w.getFont()
-	width := float64(length) * font.cellwidth
+	// width := float64(length) * font.cellwidth
 	height := float64(font.lineHeight)
 
 	image := gui.NewQImage3(
 		int(w.devicePixelRatio*width),
+		// int(w.devicePixelRatio*width),
 		int(w.devicePixelRatio*height),
 		gui.QImage__Format_ARGB32_Premultiplied,
 	)
@@ -2893,6 +2895,8 @@ func (w *Window) newTextCache(text string, highlight *Highlight, isNormalWidth b
 		)
 	}
 
+	// TODO: Proportional font: no `cellwidth`
+	// TODO: Proportional font: Bold Width
 	width := float64(len(text))*font.cellwidth + 1
 	if highlight.italic {
 		width = float64(len(text))*font.italicWidth + 1
@@ -3063,7 +3067,7 @@ func (w *Window) drawTextDecoration(p *gui.QPainter, y int, col int, cols int) {
 
 			p.DrawImage7(
 				core.NewQPointF3(
-					float64(x)*font.cellwidth+float64(horScrollPixels),
+					w.getPixelX(font, y, x)+float64(horScrollPixels),
 					float64(y*font.lineHeight)+float64(verScrollPixels),
 				),
 				image,
