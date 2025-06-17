@@ -2249,7 +2249,6 @@ func (w *Window) newBgCache(lastHighlight *Highlight, width float64) *gui.QImage
 
 	image := gui.NewQImage3(
 		int(w.devicePixelRatio*width),
-		// int(w.devicePixelRatio*width),
 		int(w.devicePixelRatio*height),
 		gui.QImage__Format_ARGB32_Premultiplied,
 	)
@@ -2331,15 +2330,12 @@ func resolveFontFallback(font *Font, fallbackfonts []*Font, char string) *Font {
 	return font
 }
 
-// Compute the pixel index of each character for each row in range.
-// This function is only usefull for proportional fonts,
-// because we can't do `col * font.cellwidth`.
-// TODO: Implement a better (and real) Cache.
-// TODO: Compute correct value for Bold/Italic
+/* Compute the pixel index of each character for each row in range.
+ * This function is only usefull for proportional fonts,
+ * because we can't do `col * font.cellwidth`. */
 func (w *Window) refreshLinesPixels(row_start, row_end int) {
 	// Font Metrics is used to get the length of each character
 	font := w.getFont()
-	fm := font.fontMetrics
 	// Only Reallocate slices if necessary
 	// - Reallocation for the whole matrix
 	if w.allLinesPixels == nil || cap(w.allLinesPixels) < row_end {
@@ -2354,21 +2350,39 @@ func (w *Window) refreshLinesPixels(row_start, row_end int) {
 		}
 	}
 	// Temporary Pseudo Cache for character lengths
-	m := make(map[string]int)
+	// TODO: Implement a better (and real) Cache.
+	normalCache := make(map[string]int)
+	italicCache := make(map[string]int)
+	boldCache := make(map[string]int)
+	italicBoldCache := make(map[string]int)
 	// Iterate over the lines to be drawn
 	for y := row_start; y < row_end; y++ {
 		line := w.content[y]
 		// TODO: X could be something else than 0, if any margin?
 		x := 0
-		// Iterate over the cells of the line
 		for i, cell := range line {
+			// Font metrics and cache depends on font variant
+			var cache map[string]int
+			var fm *gui.QFontMetricsF
+			if !cell.highlight.italic && !cell.highlight.bold {
+				cache = normalCache
+				fm = font.fontMetrics
+			} else if !cell.highlight.bold {
+				cache = italicCache
+				fm = font.italicFontMetrics
+			} else if !cell.highlight.italic {
+				cache = boldCache
+				fm = font.boldFontMetrics
+			} else {
+				cache = italicBoldCache
+				fm = font.italicBoldFontMetrics
+			}
 			char := cell.char
 			w.allLinesPixels[y][i] = x
-			// Use the pseudo-cache
-			charLen, ok := m[char]
+			charLen, ok := cache[cell.char]
 			if !ok {
 				charLen = int(fm.HorizontalAdvance(char, -1))
-				m[char] = charLen
+				cache[cell.char] = charLen
 			}
 			// Update the index
 			x += charLen

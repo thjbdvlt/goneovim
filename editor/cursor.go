@@ -581,13 +581,22 @@ func (c *Cursor) updateCursorPos(row, col int, win *Window) {
 		x += float64(col)*font.cellwidth
 	} else {
 		// For proportional fonts, compute the length of each char
-		fm := c.font.fontMetrics
+		var fm *gui.QFontMetricsF
 		for i := 0; i < c.col; i++ {
-			char := win.content[c.row][i].char
+			cell := win.content[c.row][i]
+			if !cell.highlight.italic && !cell.highlight.bold {
+				fm = c.font.fontMetrics
+			} else if !cell.highlight.bold {
+				fm = c.font.italicFontMetrics
+			} else if !cell.highlight.italic {
+				fm = c.font.boldFontMetrics
+			} else {
+				fm = c.font.italicBoldFontMetrics
+			}
 			// TODO: Bold (and italic?) width, using `c.highlight.bold`
 			// TODO: Use cache to avoid calling HorizontalAdvance?
 			// (Window.allLinesPixels may not be initialized.)
-			x += fm.HorizontalAdvance(char, -1)
+			x += fm.HorizontalAdvance(cell.char, -1)
 		}
 	}
 

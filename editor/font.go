@@ -27,6 +27,11 @@ type Font struct {
 	letterSpace int
 	shift       int
 	fixedPitch  bool
+
+	// Variant font metrics (only set for Proportional Fonts)
+	italicFontMetrics     *gui.QFontMetricsF
+	boldFontMetrics       *gui.QFontMetricsF
+	italicBoldFontMetrics *gui.QFontMetricsF
 }
 
 func fontSizeNew(font *gui.QFont) (float64, int, float64, float64) {
@@ -67,6 +72,12 @@ func initFontNew(family string, size float64, weight gui.QFont__Weight, stretch,
 
 	width, height, ascent, italicWidth := fontSizeNew(font)
 
+	// Proportional Fonts
+	var italicFM, boldFM, italicBoldFM *gui.QFontMetricsF
+	if !fixedPitch {
+		italicFM, boldFM, italicBoldFM = getFontMetricsVariants(font)
+	}
+
 	return &Font{
 		family:      family,
 		size:        size,
@@ -84,6 +95,11 @@ func initFontNew(family string, size float64, weight gui.QFont__Weight, stretch,
 		ascent:      ascent,
 		italicWidth: italicWidth,
 		fixedPitch:  fixedPitch,
+
+		// Proportional fonts
+		italicFontMetrics: italicFM,
+		boldFontMetrics: boldFM,
+		italicBoldFontMetrics: italicBoldFM,
 	}
 }
 
@@ -119,12 +135,29 @@ func (f *Font) change(family string, size float64, weight gui.QFont__Weight, str
 	f.shift = int(float64(f.lineSpace)/2 + ascent)
 	f.italicWidth = italicWidth
 
+	// Font Metrics variants for proportional fonts
+	if !f.fixedPitch {
+		f.italicFontMetrics, f.boldFontMetrics, f.italicBoldFontMetrics = getFontMetricsVariants(f.qfont)
+	}
+
 	f.family = family
 	f.size = size
 	f.weight = weight
 	f.stretch = stretch
 
 	// f.putDebugLog()
+}
+
+// Get Font Metrics variants (italic, bold, bold+italic)
+func getFontMetricsVariants(font *gui.QFont) (italicFM, boldFM, italicBoldFM *gui.QFontMetricsF) {
+	font.SetStyle(gui.QFont__StyleItalic)
+	italicFM = gui.NewQFontMetricsF(font)
+	font.SetBold(true)
+	italicBoldFM = gui.NewQFontMetricsF(font)
+	font.SetStyle(gui.QFont__StyleNormal)
+	boldFM = gui.NewQFontMetricsF(font)
+	font.SetBold(false)
+	return italicFM, boldFM, italicBoldFM
 }
 
 // func (f *Font) hasGlyph(s string) bool {
