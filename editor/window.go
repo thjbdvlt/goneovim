@@ -174,7 +174,7 @@ type Window struct {
 	isMsgGrid              bool
 	isGridDirty            bool
 
-	allLinesPixels [][]int // Proportional fonts
+	xPixelsIndexes [][]int // Proportional fonts
 }
 
 type localWindow struct {
@@ -2022,7 +2022,7 @@ func (w *Window) getPixelX(font *Font, row, col int) float64 {
 	if font.fixedPitch {
 		return float64(col) * font.cellwidth
 	} else {
-		return float64(w.allLinesPixels[row][col])
+		return float64(w.xPixelsIndexes[row][col])
 	}
 }
 
@@ -2068,7 +2068,7 @@ func (w *Window) fillCellRect(p *gui.QPainter, lastHighlight *Highlight, lastBg 
 		pixelStart = float64(start) * font.cellwidth
 		pixelWidth = float64(width) * font.cellwidth
 	} else {
-		pixelStart = float64(w.allLinesPixels[y][start])
+		pixelStart = float64(w.xPixelsIndexes[y][start])
 		x2 := start + width
 		if x2 >= w.cols {
 			x2 = w.cols
@@ -2338,15 +2338,15 @@ func (w *Window) refreshLinesPixels(row_start, row_end int) {
 	font := w.getFont()
 	// Only Reallocate slices if necessary
 	// - Reallocation for the whole matrix
-	if w.allLinesPixels == nil || cap(w.allLinesPixels) < row_end {
-		w.allLinesPixels = make([][]int, w.rows+1)
+	if w.xPixelsIndexes == nil || cap(w.xPixelsIndexes) < row_end {
+		w.xPixelsIndexes = make([][]int, w.rows+1)
 	}
 	// - Reallocation for the subslices
-	if len(w.allLinesPixels) == 0 ||
-		w.allLinesPixels[0] == nil ||
-		cap(w.allLinesPixels[0]) < w.cols+1 {
-		for i, _ := range w.allLinesPixels {
-			w.allLinesPixels[i] = make([]int, w.cols+1)
+	if len(w.xPixelsIndexes) == 0 ||
+		w.xPixelsIndexes[0] == nil ||
+		cap(w.xPixelsIndexes[0]) < w.cols+1 {
+		for i, _ := range w.xPixelsIndexes {
+			w.xPixelsIndexes[i] = make([]int, w.cols+1)
 		}
 	}
 	// Temporary Pseudo Cache for character lengths
@@ -2378,7 +2378,7 @@ func (w *Window) refreshLinesPixels(row_start, row_end int) {
 				fm = font.italicBoldFontMetrics
 			}
 			char := cell.char
-			w.allLinesPixels[y][i] = x
+			w.xPixelsIndexes[y][i] = x
 			charLen, ok := cache[cell.char]
 			if !ok {
 				charLen = int(fm.HorizontalAdvance(char, -1))
@@ -2387,7 +2387,7 @@ func (w *Window) refreshLinesPixels(row_start, row_end int) {
 			// Update the index
 			x += charLen
 		}
-		w.allLinesPixels[y][w.cols] = x
+		w.xPixelsIndexes[y][w.cols] = x
 	}
 }
 
@@ -3109,8 +3109,8 @@ func (w *Window) drawDecoration(p *gui.QPainter, highlight *Highlight, font *Fon
 		start = float64(x1) * font.cellwidth
 		end = float64(x2) * font.cellwidth
 	} else {
-		start = float64(w.allLinesPixels[row][x1])
-		end = float64(w.allLinesPixels[row][x2])
+		start = float64(w.xPixelsIndexes[row][x1])
+		end = float64(w.xPixelsIndexes[row][x2])
 	}
 
 	if highlight.strikethrough {
