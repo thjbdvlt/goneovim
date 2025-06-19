@@ -1719,7 +1719,9 @@ func (w *Window) update() {
 	end := w.queueRedrawArea[3]
 	extendedDrawingArea := int(font.cellwidth)
 
-	drawWithSingleRect := (w.lastScrollphase != core.Qt__ScrollEnd && (w.scrollPixels[0] != 0 || w.scrollPixels[1] != 0)) || editor.config.Editor.IndentGuide || w.s.name == "minimap" || (editor.config.Editor.SmoothScroll && w.scrollPixels2 != 0)
+	// `|| !font.fixedPitch` is a workaround, and may be avoided when
+	// the loop that compute `rects` sizes will support Proportional fonts.
+	drawWithSingleRect := (w.lastScrollphase != core.Qt__ScrollEnd && (w.scrollPixels[0] != 0 || w.scrollPixels[1] != 0)) || editor.config.Editor.IndentGuide || w.s.name == "minimap" || (editor.config.Editor.SmoothScroll && w.scrollPixels2 != 0) || !font.fixedPitch
 	if drawWithSingleRect {
 		begin = 0
 		end = w.rows
