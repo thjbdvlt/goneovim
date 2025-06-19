@@ -2425,7 +2425,7 @@ func (w *Window) drawText(p *gui.QPainter, y int, col int, cols int) {
 		if line[x].char == " " {
 			continue
 		}
-		if !line[x].normalWidth {
+		if !line[x].normalWidth && wsfont.fixedPitch {
 			specialChars = append(specialChars, x)
 			continue
 		}

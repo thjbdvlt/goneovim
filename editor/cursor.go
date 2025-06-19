@@ -487,7 +487,7 @@ func (c *Cursor) updateCursorShape(win *Window) {
 		}
 	}
 	width := int(math.Trunc(cellwidth))
-	if !c.normalWidth {
+	if !c.normalWidth && (c.font == nil || c.font.fixedPitch) {
 		width = width * 2
 	}
 
