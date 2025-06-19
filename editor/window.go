@@ -333,7 +333,7 @@ func (w *Window) paint(event *gui.QPaintEvent) {
 
 	// If the window uses a proportional fonts, compute the X-position
 	// in pixel for each characters of each lines that will be painted
-	if !font.fixedPitch {
+	if font.proportional {
 		w.refreshLinesPixels(row, row + rows)
 	}
 
@@ -1719,9 +1719,9 @@ func (w *Window) update() {
 	end := w.queueRedrawArea[3]
 	extendedDrawingArea := int(font.cellwidth)
 
-	// `|| !font.fixedPitch` is a workaround, and may be avoided when
+	// `|| font.proportional` is a workaround, and may be avoided when
 	// the loop that compute `rects` sizes will support Proportional fonts.
-	drawWithSingleRect := (w.lastScrollphase != core.Qt__ScrollEnd && (w.scrollPixels[0] != 0 || w.scrollPixels[1] != 0)) || editor.config.Editor.IndentGuide || w.s.name == "minimap" || (editor.config.Editor.SmoothScroll && w.scrollPixels2 != 0) || !font.fixedPitch
+	drawWithSingleRect := (w.lastScrollphase != core.Qt__ScrollEnd && (w.scrollPixels[0] != 0 || w.scrollPixels[1] != 0)) || editor.config.Editor.IndentGuide || w.s.name == "minimap" || (editor.config.Editor.SmoothScroll && w.scrollPixels2 != 0) || font.proportional
 	if drawWithSingleRect {
 		begin = 0
 		end = w.rows
@@ -2021,7 +2021,7 @@ func (w *Window) drawBackground(p *gui.QPainter, y int, col int, cols int, isDra
 
 // Get the x-position of a cell, in pixel, for fixed/proportional fonts.
 func (w *Window) getPixelX(font *Font, row, col int) float64 {
-	if font.fixedPitch {
+	if !font.proportional {
 		return float64(col) * font.cellwidth
 	} else {
 		return float64(w.xPixelsIndexes[row][col])
@@ -2066,7 +2066,7 @@ func (w *Window) fillCellRect(p *gui.QPainter, lastHighlight *Highlight, lastBg 
 
 	// Get the position and width of the Rect in pixels.
 	var pixelStart, pixelWidth float64
-	if font.fixedPitch {
+	if !font.proportional {
 		pixelStart = float64(start) * font.cellwidth
 		pixelWidth = float64(width) * font.cellwidth
 	} else {
@@ -2425,7 +2425,7 @@ func (w *Window) drawText(p *gui.QPainter, y int, col int, cols int) {
 		if line[x].char == " " {
 			continue
 		}
-		if !line[x].normalWidth && wsfont.fixedPitch {
+		if !line[x].normalWidth && !wsfont.proportional {
 			specialChars = append(specialChars, x)
 			continue
 		}
@@ -3107,7 +3107,7 @@ func (w *Window) drawDecoration(p *gui.QPainter, highlight *Highlight, font *Fon
 	p.SetPen(pen)
 
 	var start, end float64
-	if w.getFont().fixedPitch {
+	if !w.getFont().proportional {
 		start = float64(x1) * font.cellwidth
 		end = float64(x2) * font.cellwidth
 	} else {

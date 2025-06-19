@@ -464,7 +464,7 @@ func (c *Cursor) updateCursorShape(win *Window) {
 
 	if c.font != nil {
 		// TODO: fix Cursor text when width is small: t, i, !, f, ...
-		if c.font.fixedPitch {
+		if !c.font.proportional {
 			cellwidth = c.font.cellwidth
 		} else {
 			fm := c.font.fontMetrics
@@ -487,7 +487,7 @@ func (c *Cursor) updateCursorShape(win *Window) {
 		}
 	}
 	width := int(math.Trunc(cellwidth))
-	if !c.normalWidth && (c.font == nil || c.font.fixedPitch) {
+	if !c.normalWidth && (c.font == nil || !c.font.proportional) {
 		width = width * 2
 	}
 
@@ -577,7 +577,7 @@ func (c *Cursor) updateCursorPos(row, col int, win *Window) {
 	}
 
 	var x float64 = float64(winx + horScrollPixels)
-	if c.font.fixedPitch {
+	if !c.font.proportional {
 		x += float64(col)*font.cellwidth
 	} else {
 		// For proportional fonts, compute the length of each char
