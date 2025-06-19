@@ -106,7 +106,9 @@ func (c *Cursor) paintEvent(event *gui.QPaintEvent) {
 		c.devicePixelRatio = float64(p.PaintEngine().PaintDevice().DevicePixelRatio())
 	}
 
-	if c.sourcetext == "" || c.devicePixelRatio == 0 || c.width < int(font.cellwidth/2.0) {
+	// Fixed font aren't draw if cursor isn't wide enough.
+	// But for proportional, it would ends not drawing "i","t","!"...
+	if c.sourcetext == "" || c.devicePixelRatio == 0 || (c.width < int(font.cellwidth/2.0) && !c.font.proportional) {
 		p.DestroyQPainter()
 		return
 	}
@@ -463,7 +465,6 @@ func (c *Cursor) updateCursorShape(win *Window) {
 
 
 	if c.font != nil {
-		// TODO: fix Cursor text when width is small: t, i, !, f, ...
 		if !c.font.proportional {
 			cellwidth = c.font.cellwidth
 		} else {
@@ -504,7 +505,11 @@ func (c *Cursor) updateCursorShape(win *Window) {
 		}
 	case "vertical":
 		c.isTextDraw = true
-		width = int(math.Ceil(float64(width) * p))
+		if (c.font == nil || !c.font.proportional) {
+			width = int(math.Ceil(float64(width) * p))
+		} else {
+			width = int(c.font.cellwidth) / 10
+		}
 		c.horizontalShift = 0
 	default:
 		c.isTextDraw = true
