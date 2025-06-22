@@ -2020,12 +2020,39 @@ func (w *Window) drawBackground(p *gui.QPainter, y int, col int, cols int, isDra
 }
 
 // Get the x-position of a cell, in pixel, for fixed/proportional fonts.
+// When using proportional fonts, this functions dose not check that the `row+col`
+// index exists in the `Window.xPixelsIndexes` field. Thus, it must only be
+// used when it's sure that `Window.refreshLinesPixels` has already been called.
+// For other cases, use `getSinglePixelX` below.
 func (w *Window) getPixelX(font *Font, row, col int) float64 {
 	if !font.proportional {
 		return float64(col) * font.cellwidth
 	} else {
 		return float64(w.xPixelsIndexes[row][col])
 	}
+}
+
+func (w *Window) getSinglePixelX(row, col int) float64 {
+	var x float64 = 0
+	if row < 0 || row >= w.rows || col < 0 || col >= w.cols {
+		return 0
+	}
+	font := w.getFont()
+	var fm *gui.QFontMetricsF
+	for i := 0; i < col; i++ {
+		cell := w.content[row][i]
+		if !cell.highlight.italic && !cell.highlight.bold {
+			fm = font.fontMetrics
+		} else if !cell.highlight.bold {
+			fm = font.italicFontMetrics
+		} else if !cell.highlight.italic {
+			fm = font.boldFontMetrics
+		} else {
+			fm = font.italicBoldFontMetrics
+		}
+		x += fm.HorizontalAdvance(cell.char, -1)
+	}
+	return x
 }
 
 func (w *Window) fillCellRect(p *gui.QPainter, lastHighlight *Highlight, lastBg *RGBA, y, start, end, horScrollPixels, verScrollPixels int, isDrawDefaultBg bool) {
@@ -4039,10 +4066,7 @@ func (w *Window) move(col int, row int, anchorwindow ...*Window) {
 			row = anchorwin.s.ws.cursor.row
 			winwithcontent, ok := w.s.getWindow(w.s.ws.cursor.gridid)
 			if ok {
-				// TODO: `Window.refreshLinesPixels()` is way too much for only
-				// one line. A cache-free function should be used instead.
-				winwithcontent.refreshLinesPixels(row, row)
-				x = winwithcontent.xPixelsIndexes[row][col]
+				x = int(winwithcontent.getSinglePixelX(row, col))
 			}
 		}
 	}
