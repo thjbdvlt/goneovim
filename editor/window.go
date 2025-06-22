@@ -4022,6 +4022,31 @@ func (w *Window) move(col int, row int, anchorwindow ...*Window) {
 		return
 	}
 
+	if font.proportional && w.isFloatWin && !w.isMsgGrid {
+		config, err := w.s.ws.nvim.WindowConfig(w.id)
+		// There is currently no reliable way to identify cursor-based floating
+		// window. All completion plugins set `relative` to `"editor"` in the
+		// window config (and not to `"cursor"`).
+		// Related issue: https://github.com/neovim/neovim/issues/34595
+		// For now, it seems that best workaround is to make the position of
+		// every editor/cursor-relative floating window relative to the actual
+		// content of the grid. This will place completion window correctly.
+		// As a consequence, centered floating window won't be centered anymore,
+		// but it's a minor issue since text itself doesn't occupy (as now) the
+		// whole window (because of text wrapping).
+		if err == nil && anchorwin != nil && config != nil &&
+			(config.Relative == "cursor" || config.Relative == "editor") {
+			row = anchorwin.s.ws.cursor.row
+			winwithcontent, ok := w.s.getWindow(w.s.ws.cursor.gridid)
+			if ok {
+				// TODO: `Window.refreshLinesPixels()` is way too much for only
+				// one line. A cache-free function should be used instead.
+				winwithcontent.refreshLinesPixels(row, row)
+				x = winwithcontent.xPixelsIndexes[row][col]
+			}
+		}
+	}
+
 	w.Move2(x, y)
 }
 
