@@ -173,8 +173,8 @@ type Window struct {
 	isFloatWin             bool
 	isMsgGrid              bool
 	isGridDirty            bool
-	xPixelsIndexes         [][]int // Proportional fonts
-	endGutterIdx           int     // Proportional fonts
+	xPixelsIndexes         [][]float64 // Proportional fonts
+	endGutterIdx           int         // Proportional fonts
 }
 
 type localWindow struct {
@@ -2028,7 +2028,7 @@ func (w *Window) getPixelX(font *Font, row, col int) float64 {
 	if !font.proportional {
 		return float64(col) * font.cellwidth
 	} else {
-		return float64(w.xPixelsIndexes[row][col])
+		return w.xPixelsIndexes[row][col]
 	}
 }
 
@@ -2376,30 +2376,30 @@ func (w *Window) refreshLinesPixels(row_start, row_end int) {
 	font := w.getFont()
 	// For gutter alignment
 	endGutterIdx, _ := w.getTextOff(1)
-	gutterCellWidth := int(font.width / 2)
+	gutterCellWidth := font.width / 2
 	// Only Reallocate slices if necessary
 	// - Reallocation for the whole matrix
 	if w.xPixelsIndexes == nil || cap(w.xPixelsIndexes) <= row_end {
-		w.xPixelsIndexes = make([][]int, w.rows+1)
+		w.xPixelsIndexes = make([][]float64, w.rows+1)
 	}
 	// - Reallocation for the subslices
 	if len(w.xPixelsIndexes) == 0 ||
 		w.xPixelsIndexes[0] == nil ||
 		cap(w.xPixelsIndexes[0]) < w.cols+1 {
 		for i, _ := range w.xPixelsIndexes {
-			w.xPixelsIndexes[i] = make([]int, w.cols+1)
+			w.xPixelsIndexes[i] = make([]float64, w.cols+1)
 		}
 	}
 	// Temporary Pseudo Cache for character lengths
 	// TODO: Implement a better (and real) Cache.
-	normalCache := make(map[string]int)
-	italicCache := make(map[string]int)
-	boldCache := make(map[string]int)
-	italicBoldCache := make(map[string]int)
+	normalCache := make(map[string]float64)
+	italicCache := make(map[string]float64)
+	boldCache := make(map[string]float64)
+	italicBoldCache := make(map[string]float64)
 	// Iterate over the lines to be drawn
 	for y := row_start; y <= row_end; y++ {
 		line := w.content[y]
-		x := 0
+		var x float64
 		var i int
 		// It will behave strangely if `vim.opt.showcmd` is set to true.
 		for i = 0; i < endGutterIdx; i++ {
@@ -2409,7 +2409,7 @@ func (w *Window) refreshLinesPixels(row_start, row_end int) {
 		for ; i < len(line); i++ {
 			cell := line[i]
 			// Font metrics and cache depends on font variant
-			var cache map[string]int
+			var cache map[string]float64
 			var fm *gui.QFontMetricsF
 			if !cell.highlight.italic && !cell.highlight.bold {
 				cache = normalCache
@@ -2428,7 +2428,7 @@ func (w *Window) refreshLinesPixels(row_start, row_end int) {
 			w.xPixelsIndexes[y][i] = x
 			charLen, ok := cache[cell.char]
 			if !ok {
-				charLen = int(fm.HorizontalAdvance(char, -1))
+				charLen = fm.HorizontalAdvance(char, -1)
 				cache[cell.char] = charLen
 			}
 			// Update the index
@@ -3216,8 +3216,8 @@ func (w *Window) drawDecoration(p *gui.QPainter, highlight *Highlight, font *Fon
 		start = float64(x1) * font.cellwidth
 		end = float64(x2) * font.cellwidth
 	} else {
-		start = float64(w.xPixelsIndexes[row][x1])
-		end = float64(w.xPixelsIndexes[row][x2])
+		start = w.xPixelsIndexes[row][x1]
+		end = w.xPixelsIndexes[row][x2]
 	}
 
 	if highlight.strikethrough {
