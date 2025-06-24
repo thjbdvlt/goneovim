@@ -398,18 +398,31 @@ func (s *Screen) gridFontAutomaticHeight(update interface{}) {
 	}
 
 	// Iteratively change the font size until the right height is reached
+	// TODO: Avoid the repetition, reduce this code
+	var bestFontHeight float64
+	var diff, prevDiff float64
 	for newFontHeight < oldFontHeight {
 		updateFont(1)
+		diff = math.Abs(newFontHeight - oldFontHeight)
+		if diff < prevDiff {
+			bestFontHeight = newFontHeight
+			prevDiff = diff
+		} else {
+			break
+		}
 	}
+	newFontHeight = bestFontHeight
 	for newFontHeight > oldFontHeight {
 		updateFont(-1)
+		diff = math.Abs(newFontHeight - oldFontHeight)
+		if diff < prevDiff {
+			bestFontHeight = newFontHeight
+			prevDiff = diff
+		} else {
+			break
+		}
 	}
-	for newFontHeight < oldFontHeight {
-		updateFont(0.1)
-	}
-	for newFontHeight > oldFontHeight {
-		updateFont(-0.1)
-	}
+	newFontHeight = bestFontHeight
 
 	// Build the new font
 	win.font = initFontNew(fontFamily, newFontSize, font.weight, font.stretch, font.lineSpace, font.letterSpace)
