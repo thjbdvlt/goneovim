@@ -404,12 +404,11 @@ func (s *Screen) gridFontAutomaticHeight(update interface{}) {
 	for newFontHeight > oldFontHeight {
 		updateFont(-1)
 	}
-	for newFontHeight < oldFontHeight {
-		updateFont(0.1)
-	}
-	for newFontHeight > oldFontHeight {
-		updateFont(-0.1)
-	}
+
+	// Refresh the screen while the font.cellwidth hasn't change.
+	// It avoids old text to stay forever, between windows.
+	// (Especially between window and statusbar.)
+	s.refresh()
 
 	// Build the new font
 	win.font = initFontNew(fontFamily, newFontSize, font.weight, font.stretch, font.lineSpace, font.letterSpace)
@@ -419,6 +418,8 @@ func (s *Screen) gridFontAutomaticHeight(update interface{}) {
 	s.ws.cursor.font = win.font
 	win.fallbackfonts = nil
 	s.ws.cursor.fallbackfonts = win.fallbackfonts
+
+	// TODO: Resize Grid if enough space to add a row
 
 	// Cache
 	cache := win.cache
