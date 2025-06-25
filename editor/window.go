@@ -2058,23 +2058,10 @@ func (w *Window) drawBackground(p *gui.QPainter, y int, col int, cols int, isDra
 // used when it's sure that `Window.refreshLinesPixels` has already been called.
 // For other cases, use `getSinglePixelX` below.
 func (w *Window) getPixelX(font *Font, row, col int) float64 {
-	if !font.proportional {
+	if !font.proportional || row >= len(w.xPixelsIndexes) || col >= len(w.xPixelsIndexes[row]) {
 		return float64(col) * font.cellwidth
 	}
-
-	// The row specified could be intentionally out of bound,
-	// e.g. if we draw something around the window.
-	if row >= len(w.xPixelsIndexes) {
-		return float64(col) * font.cellwidth
-	}
-	res := 0.0
-	lenRow := len(w.xPixelsIndexes[row])
-	if col >= lenRow {
-		res += float64(col-lenRow) * font.cellwidth
-		col = lenRow-1
-	}
-	res += w.xPixelsIndexes[row][col]
-	return res
+	return w.xPixelsIndexes[row][col]
 }
 
 func (w *Window) getSinglePixelX(row, col int) float64 {
@@ -2166,9 +2153,8 @@ func (w *Window) fillCellRect(p *gui.QPainter, lastHighlight *Highlight, lastBg 
 		pixelStart = float64(start) * font.cellwidth
 		pixelWidth = float64(width) * font.cellwidth
 	} else {
-		x2 := start + width
 		pixelStart = w.getPixelX(font, y, start)
-		pixelWidth = w.getPixelX(font, y, x2) - pixelStart
+		pixelWidth = w.getPixelX(font, y, start+width) - pixelStart
 	}
 
 	if verScrollPixels == 0 ||
