@@ -3,7 +3,7 @@ package editor
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -867,31 +867,34 @@ func (e *Editor) setEnvironmentVariables() {
 	}
 
 	// If the OS is MacOS and the application is launched from an .app
-	if runtime.GOOS == "darwin" && e.ppid == 1 {
+	if runtime.GOOS == "darwin" && os.Getenv("TERM") == "" {
 		shell := os.Getenv("SHELL")
 		if shell == "" {
-			shell = os.Getenv("/bin/bash")
+			shell = "/bin/zsh" // fallback
 		}
-		cmd := exec.Command(shell, "-l", "-c", "env", "-i")
-		// cmd := exec.Command("printenv")
+
+		cmd := exec.Command(shell, "-l", "-c", "env")
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
 			e.putLog(err)
 			return
 		}
+
 		if err := cmd.Start(); err != nil {
 			e.putLog(err)
 			return
 		}
-		output, err := ioutil.ReadAll(stdout)
+
+		output, err := io.ReadAll(stdout)
+		stdout.Close()
 		if err != nil {
 			e.putLog(err)
-			stdout.Close()
 			return
 		}
-		for _, b := range strings.Split(string(output), "\n") {
-			splits := strings.SplitN(b, "=", 2)
-			if len(splits) > 1 {
+
+		for _, line := range strings.Split(string(output), "\n") {
+			splits := strings.SplitN(line, "=", 2)
+			if len(splits) == 2 {
 				_ = os.Setenv(splits[0], splits[1])
 			}
 		}
@@ -1100,11 +1103,18 @@ func (e *Editor) setWindowSizeFromOpts() {
 func (e *Editor) setWindowSize(s string) (int, int) {
 	var width, height int
 	var err error
-	width, err = strconv.Atoi(strings.SplitN(s, "x", 2)[0])
+
+	parsed_s := strings.SplitN(s, "x", 2)
+	if len(parsed_s) != 2 {
+		// TODO: Error message to user?
+		return 40, 30
+	}
+
+	width, err = strconv.Atoi(parsed_s[0])
 	if err != nil || width < 40 {
 		width = 40
 	}
-	height, err = strconv.Atoi(strings.SplitN(s, "x", 2)[1])
+	height, err = strconv.Atoi(parsed_s[1])
 	if err != nil || height < 30 {
 		height = 30
 	}
