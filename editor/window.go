@@ -88,6 +88,13 @@ type BrushKey struct {
 	transparent int
 }
 
+// PFKey is key for proportional fonts
+type PFKey struct {
+	char string
+	italic bool
+	bold bool
+}
+
 // Cell is
 type Cell struct {
 	highlight   *Highlight
@@ -2079,19 +2086,19 @@ func (w *Window) getSinglePixelX(row, col int) float64 {
 	endGutterIdx, _ := w.getTextOff(1)
 	var fm *gui.QFontMetricsF
 	var i int = 0
-	gutterCellWidth := font.width / 2
 	for ; i < endGutterIdx; i++ {
-		x += gutterCellWidth
+		x += font.width
 	}
 	for ; i < col; i++ {
 		cell := w.content[row][i]
-		if !cell.highlight.italic && !cell.highlight.bold {
+		switch {
+		case !cell.highlight.italic && !cell.highlight.bold:
 			fm = font.fontMetrics
-		} else if !cell.highlight.bold {
+		case !cell.highlight.bold:
 			fm = font.italicFontMetrics
-		} else if !cell.highlight.italic {
+		case !cell.highlight.italic:
 			fm = font.boldFontMetrics
-		} else {
+		default:
 			fm = font.italicBoldFontMetrics
 		}
 		x += fm.HorizontalAdvance(cell.char, -1)
@@ -2373,6 +2380,7 @@ func resolveFontFallback(font *Font, fallbackfonts []*Font, char string) *Font {
 	return font
 }
 
+
 /* Compute the pixel index of each character for each row in range.
  * This function is only usefull for proportional fonts,
  * because we can't do `col * font.cellwidth`. */
@@ -2384,7 +2392,6 @@ func (w *Window) refreshLinesPixels(row_start, row_end int) {
 	font := w.getFont()
 	// For gutter alignment
 	endGutterIdx, _ := w.getTextOff(1)
-	gutterCellWidth := font.width / 2
 	// Only Reallocate slices if necessary
 	// - Reallocation for the whole matrix
 	if w.xPixelsIndexes == nil || cap(w.xPixelsIndexes) <= row_end {
@@ -2399,11 +2406,7 @@ func (w *Window) refreshLinesPixels(row_start, row_end int) {
 		}
 	}
 	// Temporary Pseudo Cache for character lengths
-	// TODO: Implement a better (and real) Cache.
-	normalCache := make(map[string]float64)
-	italicCache := make(map[string]float64)
-	boldCache := make(map[string]float64)
-	italicBoldCache := make(map[string]float64)
+	cache := make(map[PFKey]float64)
 	// Iterate over the lines to be drawn
 	for y := row_start; y <= row_end; y++ {
 		line := w.content[y]
@@ -2412,32 +2415,27 @@ func (w *Window) refreshLinesPixels(row_start, row_end int) {
 		// It will behave strangely if `vim.opt.showcmd` is set to true.
 		for i = 0; i < endGutterIdx; i++ {
 			w.xPixelsIndexes[y][i] = x
-			x += gutterCellWidth
+			x += font.width
 		}
 		for ; i < len(line); i++ {
-			cell := line[i]
-			// Font metrics and cache depends on font variant
-			var cache map[string]float64
-			var fm *gui.QFontMetricsF
-			if !cell.highlight.italic && !cell.highlight.bold {
-				cache = normalCache
-				fm = font.fontMetrics
-			} else if !cell.highlight.bold {
-				cache = italicCache
-				fm = font.italicFontMetrics
-			} else if !cell.highlight.italic {
-				cache = boldCache
-				fm = font.boldFontMetrics
-			} else {
-				cache = italicBoldCache
-				fm = font.italicBoldFontMetrics
-			}
-			char := cell.char
 			w.xPixelsIndexes[y][i] = x
-			charLen, ok := cache[cell.char]
+			cell := line[i]
+			key := PFKey{char: cell.char, italic: cell.highlight.italic, bold: cell.highlight.bold}
+			charLen, ok := cache[key]
 			if !ok {
-				charLen = fm.HorizontalAdvance(char, -1)
-				cache[cell.char] = charLen
+				var fm *gui.QFontMetricsF
+				switch {
+				case !cell.highlight.italic && !cell.highlight.bold:
+					fm = font.fontMetrics
+				case !cell.highlight.bold:
+					fm = font.italicFontMetrics
+				case !cell.highlight.italic:
+					fm = font.boldFontMetrics
+				default:
+					fm = font.italicBoldFontMetrics
+				}
+				charLen = fm.HorizontalAdvance(cell.char, -1)
+				cache[key] = charLen
 			}
 			// Update the index
 			x += charLen
@@ -3028,8 +3026,6 @@ func (w *Window) newTextCache(text string, hlkey HlKey, isNormalWidth bool) *gui
 		)
 	}
 
-	// TODO: Proportional font: no `cellwidth`
-	// TODO: Proportional font: Bold Width
 	width := float64(len(text))*font.cellwidth + 1
 	if hlkey.italic {
 		width = float64(len(text))*font.italicWidth + 1
