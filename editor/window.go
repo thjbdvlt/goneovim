@@ -3013,7 +3013,12 @@ func (w *Window) newTextCache(text string, hlkey HlKey, isNormalWidth bool) *gui
 	}
 
 	width := float64(len(text))*font.cellwidth + 1
-	if hlkey.italic {
+	if fontfallbacked.proportional {
+		fmWidth := fontfallbacked.fontMetrics.HorizontalAdvance(text, -1)
+		if fmWidth > width {
+			width = fmWidth
+		}
+	} else if hlkey.italic {
 		width = float64(len(text))*font.italicWidth + 1
 	}
 
