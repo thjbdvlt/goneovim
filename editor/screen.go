@@ -356,6 +356,13 @@ func (s *Screen) gridFontAutomaticHeight(update interface{}) {
 		grid = s.ws.cursor.bufferGridid
 	}
 
+	// Workaround for autocmds triggered with BufEnter/BufWinEnter/...
+	// When a file is opened directly e.g. with `goneovim plainfile.txt`
+	// would end with applying the new font to the status line.
+	if grid == 1 {
+		grid = 2
+	}
+
 	win, ok := s.getWindow(grid)
 	if !ok {
 		return
