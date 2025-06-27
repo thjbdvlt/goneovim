@@ -371,6 +371,7 @@ func (s *Screen) gridFontAutomaticHeight(update interface{}) {
 	}
 
 	font := win.getFont()
+	oldCellWidth := font.cellwidth
 
 	// The font height we'll try to approximate with the new font
 	oldFontHeight := font.fontMetrics.Height()
@@ -420,6 +421,11 @@ func (s *Screen) gridFontAutomaticHeight(update interface{}) {
 	s.ws.cursor.font = win.font
 	win.fallbackfonts = nil
 	s.ws.cursor.fallbackfonts = win.fallbackfonts
+
+	// Keep the old cellwidth matters. Changing it would impact e.g.
+	// Window.paint(). Plus, proportional font doesn't have something
+	// such as a `cellwidth`.
+	win.font.cellwidth = oldCellWidth
 
 	// TODO: Resize Grid if enough space to add a row
 

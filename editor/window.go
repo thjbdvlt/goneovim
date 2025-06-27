@@ -364,10 +364,36 @@ func (w *Window) paint(event *gui.QPaintEvent) {
 		w.SetAutoFillBackground(false)
 	}
 
-	// If the window uses a proportional fonts, compute the X-position
-	// in pixel for each characters of each lines that will be painted
 	if font.proportional {
-		w.refreshLinesPixels(row, row + rows)
+		// Update the pixel x-position for each cell
+		w.refreshLinesPixels(row, row+rows)
+		var i int
+		// Finding `col` and `cols` for proportional requires to find the lowest
+		// possible value for `col` and the highest possible value for `cols`.
+		left := float64(rect.Left())
+		i = w.cols
+		for y := row; y < rows; y++ {
+			for ; i > 0; i-- {
+				if w.xPixelsIndexes[y][i] < left {
+					if i < col {
+						col = i
+					}
+					break
+				}
+			}
+		}
+		width := float64(rect.Width())
+		i = 0
+		for y := row; y < row+rows; y++ {
+			for ; i < w.cols; i++ {
+				if w.xPixelsIndexes[y][i] > width {
+					if i > cols {
+						cols = i
+					}
+					break
+				}
+			}
+		}
 	}
 
 	// -------------
