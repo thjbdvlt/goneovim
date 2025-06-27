@@ -2084,8 +2084,11 @@ func (w *Window) drawBackground(p *gui.QPainter, y int, col int, cols int, isDra
 // used when it's sure that `Window.refreshLinesPixels` has already been called.
 // For other cases, use `getSinglePixelX` below.
 func (w *Window) getPixelX(font *Font, row, col int) float64 {
-	if !font.proportional || row >= len(w.xPixelsIndexes) || col >= len(w.xPixelsIndexes[row]) {
+	if !font.proportional || row >= len(w.xPixelsIndexes) {
 		return float64(col) * font.cellwidth
+	}
+	if col >= len(w.xPixelsIndexes[row]) {
+		col = len(w.xPixelsIndexes[row])-1
 	}
 	return w.xPixelsIndexes[row][col]
 }
