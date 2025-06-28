@@ -4153,7 +4153,7 @@ func (w *Window) move(col int, row int, anchorwindow ...*Window) {
 		if ok && winwithcontent.getFont().proportional {
 			config, err := w.s.ws.nvim.WindowConfig(w.id)
 			if err == nil && anchorwin != nil && config != nil &&
-				(config.Relative == "cursor" || config.Relative == "editor") {
+				config.Relative == "cursor" {
 				contentRow := anchorwin.s.ws.cursor.row
 				x = int(winwithcontent.getSinglePixelX(contentRow, col))
 				y = winwithcontent.getFont().lineHeight * row // TESTING
