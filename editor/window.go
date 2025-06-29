@@ -2100,24 +2100,13 @@ func (w *Window) getSinglePixelX(row, col int) float64 {
 	}
 	font := w.getFont()
 	endGutterIdx, _ := w.getTextOff(1)
-	var fm *gui.QFontMetricsF
 	var i int = 0
 	for ; i < endGutterIdx; i++ {
 		x += font.width
 	}
 	for ; i < col; i++ {
 		cell := w.content[row][i]
-		switch {
-		case !cell.highlight.italic && !cell.highlight.bold:
-			fm = font.fontMetrics
-		case !cell.highlight.bold:
-			fm = font.italicFontMetrics
-		case !cell.highlight.italic:
-			fm = font.boldFontMetrics
-		default:
-			fm = font.italicBoldFontMetrics
-		}
-		x += fm.HorizontalAdvance(cell.char, -1)
+		x += getFontMetrics(font, cell.highlight).HorizontalAdvance(cell.char, -1)
 	}
 	return x
 }
@@ -2395,6 +2384,18 @@ func resolveFontFallback(font *Font, fallbackfonts []*Font, char string) *Font {
 	return font
 }
 
+func getFontMetrics(font *Font,  highlight *Highlight) *gui.QFontMetricsF {
+	if !highlight.italic {
+		if !highlight.bold {
+			return font.fontMetrics
+		}
+		return font.boldFontMetrics
+	}
+	if !highlight.bold {
+		return font.italicFontMetrics
+	}
+	return font.italicBoldFontMetrics
+}
 
 /* Compute the pixel index of each character for each row in range.
  * This function is only usefull for proportional fonts,
@@ -2438,18 +2439,7 @@ func (w *Window) refreshLinesPixels(row_start, row_end int) {
 			key := PFKey{char: cell.char, italic: cell.highlight.italic, bold: cell.highlight.bold}
 			charLen, ok := cache[key]
 			if !ok {
-				var fm *gui.QFontMetricsF
-				switch {
-				case !cell.highlight.italic && !cell.highlight.bold:
-					fm = font.fontMetrics
-				case !cell.highlight.bold:
-					fm = font.italicFontMetrics
-				case !cell.highlight.italic:
-					fm = font.boldFontMetrics
-				default:
-					fm = font.italicBoldFontMetrics
-				}
-				charLen = fm.HorizontalAdvance(cell.char, -1)
+				charLen = getFontMetrics(font, cell.highlight).HorizontalAdvance(cell.char, -1)
 				cache[key] = charLen
 			}
 			// Update the index
