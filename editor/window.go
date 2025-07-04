@@ -2622,19 +2622,22 @@ func (w *Window) drawText(p *gui.QPainter, y int, col int, cols int) {
 		for hlkey, colorSlice := range chars {
 			var buffer bytes.Buffer
 			slice := colorSlice
-
 			isIndentationWhiteSpace := true
 			pos := col
+
+			horScrollPixels := 0
+			verScrollPixels := 0
+			if w.s.ws.mouseScroll != "" {
+				horScrollPixels = w.scrollPixels[0]
+			}
+			if w.lastScrollphase != core.Qt__NoScrollPhase {
+				verScrollPixels = w.scrollPixels2
+			}
+			if editor.config.Editor.LineToScroll == 1 {
+				verScrollPixels += w.scrollPixels[1]
+			}
+
 			for x := col; x <= col+cols; x++ {
-				if w.s.ws.mouseScroll != "" {
-					horScrollPixels = w.scrollPixels[0]
-				}
-				if w.lastScrollphase != core.Qt__NoScrollPhase {
-					verScrollPixels = w.scrollPixels2
-				}
-				if editor.config.Editor.LineToScroll == 1 {
-					verScrollPixels += w.scrollPixels[1]
-				}
 				if line[x].highlight.isSignColumn() {
 					horScrollPixels = 0
 				}
@@ -2647,61 +2650,16 @@ func (w *Window) drawText(p *gui.QPainter, y int, col int, cols int) {
 					verScrollPixels = 0
 				}
 
-				isDrawWord := false
+				if len(slice) == 0 {
+					break
+				}
 				index := slice[0]
 
-				if len(slice) != 0 {
-
-					// e.g. when the contents of the line is;
-					//    [ 'a', 'b', ' ', 'c', ' ', ' ', 'd', 'e', 'f' ]
-					//
-					// then, the slice is [ 1,2,4,7,8,9 ]
-					// the following process is
-					//  * If a word is separated by a single space, it is treated as a single word.
-					//  * If there are more than two continuous spaces, each word separated by a space
-					//    is treated as an independent word.
-					//
-					//  therefore, the above example will treet that;
-					//  "ab c" and "def"
-
-					if x != index {
-						if isIndentationWhiteSpace {
-							continue
-						} else {
-							if len(slice) > 1 {
-								if x+1 == index {
-									if buffer.Len() > 0 {
-										pos++
-										buffer.WriteString(" ")
-									}
-								} else {
-									isDrawWord = true
-								}
-							} else {
-								isDrawWord = true
-							}
-						}
+				if x != index {
+					if isIndentationWhiteSpace {
+						continue
 					}
-
-					if x == index {
-						pos++
-
-						char := line[x].char
-						if line[x].covered && w.grid == 1 {
-							char = " "
-						}
-						buffer.WriteString(char)
-						slice = slice[1:]
-						isIndentationWhiteSpace = false
-
-					}
-				}
-
-				if isDrawWord || len(slice) == 0 {
-					if len(slice) == 0 {
-						x++
-					}
-
+					// draw collected word
 					if buffer.Len() != 0 {
 						w.drawTextInPos(
 							p,
@@ -2712,15 +2670,39 @@ func (w *Window) drawText(p *gui.QPainter, y int, col int, cols int) {
 							true,
 							false,
 						)
-
 						buffer.Reset()
-						isDrawWord = false
 						pos = 0
 					}
+					continue
+				}
 
-					if len(slice) == 0 {
-						break
+				// x == index
+				pos++
+				char := line[x].char
+				if line[x].covered && w.grid == 1 {
+					char = " "
+				}
+				buffer.WriteString(char)
+				slice = slice[1:]
+				isIndentationWhiteSpace = false
+
+				if len(slice) == 0 {
+					// draw last word
+					if buffer.Len() != 0 {
+						x++ // prepare for next column
+						w.drawTextInPos(
+							p,
+							int(w.getPixelX(wsfont, y, x-pos))+horScrollPixels,
+							wsfontLineHeight+verScrollPixels,
+							buffer.String(),
+							hlkey,
+							true,
+							false,
+						)
+						buffer.Reset()
+						pos = 0
 					}
+					break
 				}
 			}
 		}
