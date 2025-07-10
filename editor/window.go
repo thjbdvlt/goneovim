@@ -3015,7 +3015,8 @@ func (w *Window) newTextCache(text string, hlkey HlKey, isNormalWidth bool) *gui
 
 	width := float64(len(text))*font.cellwidth + 1
 	if fontfallbacked.proportional {
-		fmWidth := fontfallbacked.fontMetrics.HorizontalAdvance(text, -1)
+		fm := getFontMetrics(fontfallbacked, &Highlight{bold: hlkey.bold, italic: hlkey.italic})
+		fmWidth := fm.HorizontalAdvance(text, -1)
 		if fmWidth > width {
 			width = fmWidth
 		}
